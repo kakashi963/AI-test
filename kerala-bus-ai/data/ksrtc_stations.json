@@ -1,0 +1,76 @@
+{
+  "stations": [
+    {
+      "id": "TVM",
+      "name": "Trivandrum Central",
+      "city": "Thiruvananthapuram",
+      "district": "Thiruvananthapuram",
+      "type": "Major Terminal",
+      "facilities": ["AC Waiting Room", "Restaurant", "Bookstall", "Cloak Room"],
+      "coordinates": {"lat": 8.4855, "lng": 76.9473}
+    },
+    {
+      "id": "KLM",
+      "name": "Kollam KSRTC Stand",
+      "city": "Kollam",
+      "district": "Kollam",
+      "type": "Major Station",
+      "facilities": ["Waiting Room", "Tea Stall", "Bookstall"],
+      "coordinates": {"lat": 8.8932, "lng": 76.6141}
+    },
+    {
+      "id": "ERN",
+      "name": "Ernakulam KSRTC Stand",
+      "city": "Kochi",
+      "district": "Ernakulam",
+      "type": "Major Terminal",
+      "facilities": ["AC Waiting Room", "Restaurant", "ATM", "Parking"],
+      "coordinates": {"lat": 9.9816, "lng": 76.2999}
+    },
+    {
+      "id": "TCR",
+      "name": "Thrissur Round",
+      "city": "Thrissur",
+      "district": "Thrissur",
+      "type": "Major Station",
+      "facilities": ["Waiting Room", "Restaurant", "Bookstall"],
+      "coordinates": {"lat": 10.5276, "lng": 76.2144}
+    },
+    {
+      "id": "MNR",
+      "name": "Munnar Town",
+      "city": "Munnar",
+      "district": "Idukki",
+      "type": "Hill Station",
+      "facilities": ["Waiting Room", "Tea Stall"],
+      "coordinates": {"lat": 10.0889, "lng": 77.0595}
+    },
+    {
+      "id": "CLT",
+      "name": "Kozhikode KSRTC Stand",
+      "city": "Kozhikode",
+      "district": "Kozhikode",
+      "type": "Major Terminal",
+      "facilities": ["AC Waiting Room", "Restaurant", "ATM"],
+      "coordinates": {"lat": 11.2588, "lng": 75.7804}
+    },
+    {
+      "id": "PKD",
+      "name": "Palakkad KSRTC Stand",
+      "city": "Palakkad",
+      "district": "Palakkad",
+      "type": "Major Station",
+      "facilities": ["Waiting Room", "Restaurant", "Parking"],
+      "coordinates": {"lat": 10.7867, "lng": 76.6548}
+    },
+    {
+      "id": "CNN",
+      "name": "Kannur KSRTC Stand",
+      "city": "Kannur",
+      "district": "Kannur",
+      "type": "Major Station",
+      "facilities": ["Waiting Room", "Tea Stall", "Bookstall"],
+      "coordinates": {"lat": 11.8745, "lng": 75.3704}
+    }
+  ]
+}

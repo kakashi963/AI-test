@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kerala Bus AI - KSRTC Smart Planner</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; }
+        .chat-container { height: calc(100vh - 140px); overflow-y: auto; scroll-behavior: smooth; }
+        .message-user { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 18px 18px 4px 18px; }
+        .message-ai { background: white; color: #1f2937; border-radius: 18px 18px 18px 4px; border: 1px solid #e5e7eb; }
+        .typing-dot { animation: typing 1.4s infinite ease-in-out both; background: #9ca3af; }
+        .typing-dot:nth-child(1) { animation-delay: -0.32s; }
+        .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+        @keyframes typing { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
+        .bus-card { transition: all 0.3s ease; }
+        .bus-card:hover { transform: translateY(-3px); box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        .quick-btn { transition: all 0.2s; white-space: nowrap; }
+        .quick-btn:hover { transform: scale(1.05); }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        @media (max-width: 640px) {
+            .chat-container { height: calc(100vh - 130px); }
+            .message-user, .message-ai { max-width: 90% !important; }
+        }
+    </style>
+</head>
+<body class="flex flex-col h-screen">
+
+    <!-- Header -->
+    <header class="bg-white/95 backdrop-blur-sm shadow-lg z-10">
+        <div class="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white shadow-md">
+                    <i class="fas fa-bus text-lg"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-gray-800 text-lg">Kerala Bus AI</h1>
+                    <p class="text-xs text-gray-500">KSRTC Smart Assistant</p>
+                </div>
+            </div>
+            <button onclick="clearChat()" class="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-full transition-colors">
+                <i class="fas fa-redo mr-1"></i> Reset
+            </button>
+        </div>
+    </header>
+
+    <!-- Chat Area -->
+    <main class="flex-1 overflow-hidden relative max-w-4xl mx-auto w-full px-4">
+        <div id="chat-box" class="chat-container py-4 space-y-4">
+            <!-- Initial Greeting -->
+            <div class="flex gap-3">
+                <div class="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0 text-white shadow-md">
+                    <i class="fas fa-robot text-sm"></i>
+                </div>
+                <div class="message-ai p-4 shadow-md max-w-[85%]">
+                    <p class="font-semibold text-gray-800 mb-2">Namaskaram! 🙏 I'm your Kerala Bus Travel Assistant.</p>
+                    <p class="text-sm text-gray-600 mb-3">I can help you find KSRTC buses, check schedules, fares, and plan trips across Kerala.</p>
+                    <div class="bg-blue-50 rounded-lg p-3 mt-3">
+                        <p class="text-xs font-semibold text-blue-700 mb-2">Try asking:</p>
+                        <ul class="text-xs text-gray-700 space-y-1.5">
+                            <li><i class="fas fa-arrow-right text-blue-500 mr-2"></i>"Bus from Kollam to Kochi tomorrow morning"</li>
+                            <li><i class="fas fa-arrow-right text-blue-500 mr-2"></i>"Fastest way to reach Munnar from Ernakulam"</li>
+                            <li><i class="fas fa-arrow-right text-blue-500 mr-2"></i>"Cheap buses to Trivandrum from Thrissur"</li>
+                            <li><i class="fas fa-arrow-right text-blue-500 mr-2"></i>"Emergency travel to hospital"</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Quick Actions -->
+        <div id="quick-actions" class="absolute bottom-4 left-4 right-4 pointer-events-none">
+            <div class="max-w-4xl mx-auto flex gap-2 overflow-x-auto pb-2 pointer-events-auto hide-scrollbar">
+                <button onclick="sendQuickQuery('Going to work from Kollam to Kochi')" class="quick-btn bg-white border border-blue-200 text-blue-600 px-4 py-2.5 rounded-full text-xs font-medium shadow-md hover:bg-blue-50 hover:border-blue-300">
+                    <i class="fas fa-briefcase mr-1.5"></i> Work Commute
+                </button>
+                <button onclick="sendQuickQuery('Weekend trip to Munnar from Kochi')" class="quick-btn bg-white border border-green-200 text-green-600 px-4 py-2.5 rounded-full text-xs font-medium shadow-md hover:bg-green-50 hover:border-green-300">
+                    <i class="fas fa-umbrella-beach mr-1.5"></i> Weekend Trip
+                </button>
+                <button onclick="sendQuickQuery('Emergency travel to hospital ASAP')" class="quick-btn bg-white border border-red-200 text-red-600 px-4 py-2.5 rounded-full text-xs font-medium shadow-md hover:bg-red-50 hover:border-red-300">
+                    <i class="fas fa-ambulance mr-1.5"></i> Emergency
+                </button>
+                <button onclick="sendQuickQuery('Cheapest bus options available')" class="quick-btn bg-white border border-purple-200 text-purple-600 px-4 py-2.5 rounded-full text-xs font-medium shadow-md hover:bg-purple-50 hover:border-purple-300">
+                    <i class="fas fa-coins mr-1.5"></i> Budget Travel
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <!-- Input Area -->
+    <footer class="bg-white/95 backdrop-blur-sm border-t shadow-lg">
+        <div class="max-w-4xl mx-auto px-4 py-3 flex gap-2">
+            <input type="text" id="user-input" 
+                class="flex-1 bg-gray-50 border border-gray-200 rounded-full px-5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                placeholder="Type your travel query... (e.g., Bus from Kollam to Kochi)"
+                onkeypress="if(event.key === 'Enter') sendMessage()">
+            <button onclick="sendMessage()" 
+                class="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-full w-12 h-12 flex items-center justify-center transition-all shadow-md hover:shadow-lg transform hover:scale-105">
+                <i class="fas fa-paper-plane text-sm"></i>
+            </button>
+        </div>
+    </footer>
+
+    <script>
+        // --- COMPREHENSIVE MOCK DATA DATABASE ---
+        const busDatabase = [
+            { id: 1, type: "Super Fast AC", route: ["Kollam", "Kochi", "Ernakulam"], from: "Kollam", to: "Kochi", time: "08:15 AM", duration: "2h 30m", fare: 145, seats: 12, amenities: ["AC", "Wifi", "Reclining Seats"], frequency: "Daily" },
+            { id: 2, type: "Ordinary Fast", route: ["Kollam", "Alappuzha", "Kochi"], from: "Kollam", to: "Kochi", time: "07:45 AM", duration: "3h 15m", fare: 95, seats: 45, amenities: ["Fan", "Regular Seats"], frequency: "Daily" },
+            { id: 3, type: "Luxury AC Multi-Axle", route: ["Trivandrum", "Kollam", "Kochi", "Thrissur"], from: "Kollam", to: "Kochi", time: "09:00 AM", duration: "2h 15m", fare: 180, seats: 5, amenities: ["AC", "Pushback", "Water Bottle", "Charging Point"], frequency: "Daily" },
+            { id: 4, type: "Super Express", route: ["Ernakulam", "Munnar"], from: "Ernakulam", to: "Munnar", time: "06:00 AM", duration: "4h 00m", fare: 160, seats: 20, amenities: ["Hill Station Special", "Large Windows"], frequency: "Daily" },
+            { id: 5, type: "City Fast", route: ["Pattom", "Medical College", "Palayam", "Kowdiar"], from: "Pattom", to: "Medical College", time: "Every 15 mins", duration: "20m", fare: 15, seats: 60, amenities: ["Standing Allowed", "City Route"], frequency: "Every 15 min" },
+            { id: 6, type: "Super Fast", route: ["Thrissur", "Palakkad", "Coimbatore"], from: "Thrissur", to: "Palakkad", time: "10:30 AM", duration: "1h 45m", fare: 110, seats: 30, amenities: ["AC Optional", "Express"], frequency: "Daily" },
+            { id: 7, type: "Ordinary", route: ["Trivandrum", "Kollam", "Kayamkulam"], from: "Trivandrum", to: "Kollam", time: "06:30 AM", duration: "2h 00m", fare: 65, seats: 50, amenities: ["Basic", "Fan"], frequency: "Daily" },
+            { id: 8, type: "Super Fast AC", route: ["Trivandrum", "Kollam", "Kochi", "Thrissur", "Kozhikode"], from: "Trivandrum", to: "Kochi", time: "05:30 AM", duration: "4h 30m", fare: 220, seats: 8, amenities: ["AC", "Sleeper Option", "Wifi"], frequency: "Daily" },
+            { id: 9, type: "Fast Passenger", route: ["Kochi", "Angamaly", "Perumbavoor", "Munnar"], from: "Kochi", to: "Munnar", time: "07:30 AM", duration: "4h 30m", fare: 140, seats: 35, amenities: ["Regular", "Scenic Route"], frequency: "Daily" },
+            { id: 10, type: "Super Express", route: ["Kollam", "Thiruvalla", "Kottayam"], from: "Kollam", to: "Kottayam", time: "08:45 AM", duration: "2h 45m", fare: 85, seats: 40, amenities: ["Express", "Limited Stops"], frequency: "Daily" },
+            { id: 11, type: "Luxury AC", route: ["Kottayam", "Kumily", "Thekkady"], from: "Kottayam", to: "Thekkady", time: "09:15 AM", duration: "3h 00m", fare: 150, seats: 15, amenities: ["AC", "Tourist Special"], frequency: "Daily" },
+            { id: 12, type: "Ordinary Fast", route: ["Kozhikode", "Malappuram", "Palakkad"], from: "Kozhikode", to: "Palakkad", time: "11:00 AM", duration: "2h 30m", fare: 90, seats: 45, amenities: ["Fan", "Regular"], frequency: "Daily" },
+            { id: 13, type: "Super Fast AC", route: ["Kochi", "Thrissur", "Shornur", "Kozhikode"], from: "Kochi", to: "Kozhikode", time: "06:00 AM", duration: "4h 15m", fare: 250, seats: 10, amenities: ["AC", "Premium", "Snacks"], frequency: "Daily" },
+            { id: 14, type: "City Ordinary", route: ["MG Road", "Marine Drive", "Fort Kochi"], from: "MG Road", to: "Fort Kochi", time: "Every 20 mins", duration: "45m", fare: 25, seats: 55, amenities: ["City Route", "Frequent"], frequency: "Every 20 min" },
+            { id: 15, type: "Super Fast", route: ["Kannur", "Kasaragod", "Mangalore"], from: "Kannur", to: "Kasaragod", time: "07:00 AM", duration: "2h 00m", fare: 100, seats: 38, amenities: ["Express", "Comfortable"], frequency: "Daily" }
+        ];
+
+        const emergencyContacts = {
+            ksrtcHelpline: "1363",
+            police: "100",
+            ambulance: "108",
+            womenHelpline: "1091"
+        };
+
+        const chatBox = document.getElementById('chat-box');
+        const userInput = document.getElementById('user-input');
+        const quickActions = document.getElementById('quick-actions');
+
+        // --- CORE FUNCTIONS ---
+
+        function sendMessage() {
+            const text = userInput.value.trim();
+            if (!text) return;
+            
+            addMessage(text, 'user');
+            userInput.value = '';
+            quickActions.classList.add('hidden');
+            
+            showTyping();
+            
+            // Simulate AI thinking delay
+            setTimeout(() => {
+                removeTyping();
+                const response = generateAIResponse(text);
+                addMessage(response, 'ai');
+            }, 800 + Math.random() * 700);
+        }
+
+        function sendQuickQuery(query) {
+            userInput.value = query;
+            sendMessage();
+        }
+
+        function addMessage(content, sender) {
+            const div = document.createElement('div');
+            div.className = `flex gap-3 ${sender === 'user' ? 'flex-row-reverse' : ''}`;
+            
+            const avatar = sender === 'user' 
+                ? `<div class="w-9 h-9 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0 shadow-sm"><i class="fas fa-user text-gray-500 text-sm"></i></div>`
+                : `<div class="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0 text-white shadow-md"><i class="fas fa-robot text-sm"></i></div>`;
+
+            const bubbleClass = sender === 'user' ? 'message-user' : 'message-ai';
+            
+            div.innerHTML = `
+                ${avatar}
+                <div class="${bubbleClass} p-4 shadow-md max-w-[85%]">${content}</div>
+            `;
+            
+            chatBox.appendChild(div);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        function showTyping() {
+            const div = document.createElement('div');
+            div.id = 'typing-indicator';
+            div.className = 'flex gap-3';
+            div.innerHTML = `
+                <div class="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0 text-white shadow-md"><i class="fas fa-robot text-sm"></i></div>
+                <div class="message-ai p-4 shadow-md flex items-center gap-2">
+                    <div class="w-2 h-2 rounded-full typing-dot"></div>
+                    <div class="w-2 h-2 rounded-full typing-dot"></div>
+                    <div class="w-2 h-2 rounded-full typing-dot"></div>
+                </div>
+            `;
+            chatBox.appendChild(div);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        function removeTyping() {
+            const indicator = document.getElementById('typing-indicator');
+            if (indicator) indicator.remove();
+        }
+
+        function clearChat() {
+            if(confirm('Clear chat history?')) {
+                location.reload();
+            }
+        }
+
+        // --- INTELLIGENT RESPONSE GENERATOR ---
+        
+        function generateAIResponse(input) {
+            const lowerInput = input.toLowerCase();
+            
+            // Extract cities from query
+            let from = null, to = null;
+            const cities = ['kollam', 'kochi', 'eranakulam', 'trivandrum', 'thrissur', 'munnar', 'alappuzha', 'palakkad', 'pattom', 'kottayam', 'kozhikode', 'kannur', 'kasaragod', 'theekkady', 'fort kochi', 'mg road'];
+            
+            cities.forEach(city => {
+                const regex = new RegExp('\\b' + city + '\\b', 'i');
+                if (regex.test(lowerInput)) {
+                    if (!from) from = city;
+                    else if (!to) to = city;
+                }
+            });
+
+            // Emergency detection
+            if (lowerInput.includes('emergency') || lowerInput.includes('hospital') || lowerInput.includes('asap') || lowerInput.includes('urgent')) {
+                return `
+                    <div class="border-l-4 border-red-500 pl-3 mb-3">
+                        <div class="font-bold text-red-600 text-base mb-2"><i class="fas fa-ambulance mr-2"></i>Emergency Travel Assistance</div>
+                        <p class="text-sm text-gray-700 mb-2">For urgent travel, here are your best options:</p>
+                        <ul class="text-sm text-gray-700 space-y-1.5 mb-3">
+                            <li><i class="fas fa-bolt text-yellow-500 mr-2"></i><strong>Super Fast / Luxury AC:</strong> Minimum stops, fastest arrival</li>
+                            <li><i class="fas fa-clock text-blue-500 mr-2"></i>Check buses departing within next 30 minutes</li>
+                            <li><i class="fas fa-car text-green-500 mr-2"></i>Consider private buses for immediate departure</li>
+                        </ul>
+                        <div class="bg-red-50 rounded-lg p-3 mt-3">
+                            <p class="text-xs font-semibold text-red-700 mb-2"><i class="fas fa-phone-volume mr-1"></i>Emergency Contacts:</p>
+                            <div class="grid grid-cols-2 gap-2 text-xs">
+                                <div class="flex justify-between"><span>KSRTC Helpline:</span><strong>1363</strong></div>
+                                <div class="flex justify-between"><span>Ambulance:</span><strong>108</strong></div>
+                                <div class="flex justify-between"><span>Police:</span><strong>100</strong></div>
+                                <div class="flex justify-between"><span>Women's Helpline:</span><strong>1091</strong></div>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-2">Tell me your origin and destination for specific bus recommendations.</p>
+                `;
+            }
+
+            // Budget/Cheapest detection
+            if (lowerInput.includes('cheap') || lowerInput.includes('budget') || lowerInput.includes('lowest fare') || lowerInput.includes('minimum')) {
+                const cheapBuses = busDatabase.filter(b => b.fare <= 100).sort((a, b) => a.fare - b.fare);
+                if (cheapBuses.length > 0) {
+                    let html = `<div class="font-bold text-green-700 text-base mb-3"><i class="fas fa-coins mr-2"></i>Budget-Friendly Options (Under ₹100)</div>`;
+                    cheapBuses.slice(0, 5).forEach((bus, idx) => {
+                        html += createBusCard(bus, idx === 0);
+                    });
+                    return html + `<p class="text-xs text-gray-500 mt-3"><i class="fas fa-info-circle mr-1"></i>Ordinary buses offer the best value for money. Book early for better seat selection.</p>`;
+                }
+            }
+
+            // Route-specific search
+            if (from && to) {
+                const results = busDatabase.filter(bus => 
+                    bus.from.toLowerCase() === from.toLowerCase() && 
+                    bus.to.toLowerCase() === to.toLowerCase()
+                );
+
+                if (results.length > 0) {
+                    // Sort by time preference if mentioned
+                    if (lowerInput.includes('morning')) {
+                        results.sort((a, b) => a.time.localeCompare(b.time));
+                    } else if (lowerInput.includes('fast') || lowerInput.includes('quick')) {
+                        results.sort((a, b) => parseInt(a.duration) - parseInt(b.duration));
+                    }
+
+                    let html = `<div class="font-bold text-blue-700 text-base mb-3"><i class="fas fa-route mr-2"></i>Found ${results.length} bus(es) from ${capitalize(from)} to ${capitalize(to)}</div>`;
+                    
+                    results.forEach((bus, index) => {
+                        const isRecommended = index === 0 && results.length > 1;
+                        html += createBusCard(bus, isRecommended);
+                    });
+
+                    html += `
+                        <div class="mt-4 bg-blue-50 rounded-lg p-3 border border-blue-100">
+                            <p class="text-xs font-semibold text-blue-700 mb-2"><i class="fas fa-ticket-alt mr-1"></i>Booking Tips:</p>
+                            <ul class="text-xs text-gray-600 space-y-1">
+                                <li>• Book online at <strong>keralartc.in</strong> for advance reservations</li>
+                                <li>• Arrive 30 mins early for boarding</li>
+                                <li>• Carry valid ID proof for AC buses</li>
+                            </ul>
+                        </div>
+                    `;
+                    return html;
+                } else {
+                    // Try partial match
+                    const partialResults = busDatabase.filter(bus => 
+                        bus.route.some(r => r.toLowerCase().includes(from.toLowerCase()))
+                    );
+                    
+                    if (partialResults.length > 0) {
+                        return `
+                            <div class="font-bold text-orange-600 mb-2"><i class="fas fa-exclamation-triangle mr-2"></i>No Direct Buses Found</div>
+                            <p class="text-sm text-gray-700 mb-3">I couldn't find direct buses from <strong>${capitalize(from)}</strong> to <strong>${capitalize(to)}</strong>.</p>
+                            <p class="text-sm text-gray-700 mb-2">However, these buses pass through <strong>${capitalize(from)}</strong>:</p>
+                            <div class="space-y-2">
+                                ${partialResults.slice(0, 3).map(bus => `
+                                    <div class="bg-gray-50 rounded-lg p-3 text-sm">
+                                        <div class="font-semibold text-gray-800">${bus.type}</div>
+                                        <div class="text-xs text-gray-600">Route: ${bus.route.join(' → ')}</div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                            <p class="text-xs text-gray-500 mt-3">Consider changing buses at major hubs like <strong>Ernakulam</strong>, <strong>Thrissur</strong>, or <strong>Kottayam</strong>.</p>
+                        `;
+                    }
+                }
+            }
+
+            // General greeting/help
+            if (lowerInput.includes('hello') || lowerInput.includes('hi') || lowerInput.includes('namaskaram') || lowerInput.includes('hey')) {
+                return `
+                    <p class="font-semibold text-gray-800 mb-2">Namaskaram! 👋 How can I help you today?</p>
+                    <p class="text-sm text-gray-600 mb-3">I'm here to assist with your Kerala bus travel needs.</p>
+                    <div class="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-3">
+                        <p class="text-xs font-semibold text-blue-700 mb-2">Popular Searches:</p>
+                        <div class="flex flex-wrap gap-2">
+                            <button onclick="sendQuickQuery('Kollam to Kochi buses')" class="text-xs bg-white border border-blue-200 text-blue-600 px-3 py-1.5 rounded-full hover:bg-blue-50">Kollam → Kochi</button>
+                            <button onclick="sendQuickQuery('Kochi to Munnar trip')" class="text-xs bg-white border border-green-200 text-green-600 px-3 py-1.5 rounded-full hover:bg-green-50">Kochi → Munnar</button>
+                            <button onclick="sendQuickQuery('Trivandrum airport bus')" class="text-xs bg-white border border-purple-200 text-purple-600 px-3 py-1.5 rounded-full hover:bg-purple-50">Airport Bus</button>
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Default response with guidance
+            return `
+                <p class="font-semibold text-gray-800 mb-2">I'd love to help you plan your journey! 🚌</p>
+                <p class="text-sm text-gray-600 mb-3">To give you the best recommendations, please tell me:</p>
+                <div class="bg-blue-50 rounded-lg p-3 space-y-2">
+                    <div class="flex items-start gap-2">
+                        <i class="fas fa-map-marker-alt text-blue-500 mt-0.5 text-xs"></i>
+                        <span class="text-sm text-gray-700"><strong>Starting point:</strong> Where are you now?</span>
+                    </div>
+                    <div class="flex items-start gap-2">
+                        <i class="fas fa-location-arrow text-green-500 mt-0.5 text-xs"></i>
+                        <span class="text-sm text-gray-700"><strong>Destination:</strong> Where do you want to go?</span>
+                    </div>
+                    <div class="flex items-start gap-2">
+                        <i class="fas fa-clock text-purple-500 mt-0.5 text-xs"></i>
+                        <span class="text-sm text-gray-700"><strong>Travel time:</strong> When do you want to travel?</span>
+                    </div>
+                </div>
+                <p class="text-xs text-gray-500 mt-3">Example: <em>"Bus from Kollam to Kochi tomorrow morning around 8 AM"</em></p>
+            `;
+        }
+
+        function createBusCard(bus, isRecommended) {
+            const badge = isRecommended ? '<span class="inline-block bg-gradient-to-r from-blue-500 to-purple-600 text-white text-xs px-2 py-1 rounded-full mb-2"><i class="fas fa-star mr-1"></i>Recommended</span>' : '';
+            const seatColor = bus.seats < 10 ? 'text-red-600' : bus.seats < 20 ? 'text-orange-600' : 'text-green-600';
+            
+            return `
+                <div class="bus-card border ${isRecommended ? 'border-blue-300 bg-blue-50' : 'border-gray-200 bg-white'} rounded-xl p-4 mb-3 shadow-sm">
+                    ${badge}
+                    <div class="flex justify-between items-start mb-2">
+                        <div>
+                            <div class="font-bold text-gray-800 text-sm">${bus.type}</div>
+                            <div class="text-xs text-gray-500 mt-1"><i class="far fa-clock mr-1"></i>Departs: <span class="font-medium text-gray-700">${bus.time}</span></div>
+                            <div class="text-xs text-gray-500"><i class="fas fa-hourglass-half mr-1"></i>Duration: ${bus.duration}</div>
+                        </div>
+                        <div class="text-right">
+                            <div class="font-bold text-green-600 text-lg">₹${bus.fare}</div>
+                            <div class="text-xs ${seatColor}"><i class="fas fa-chair mr-1"></i>${bus.seats} seats</div>
+                            <div class="text-xs text-gray-400 mt-1">${bus.frequency}</div>
+                        </div>
+                    </div>
+                    <div class="flex flex-wrap gap-1.5 mb-3">
+                        ${bus.amenities.map(a => `<span class="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">${a}</span>`).join('')}
+                    </div>
+                    <div class="flex gap-2">
+                        <button class="flex-1 bg-gradient-to-r from-blue-500 to-purple-600 text-white text-xs py-2 rounded-lg hover:from-blue-600 hover:to-purple-700 transition-all font-medium">
+                            <i class="fas fa-ticket-alt mr-1"></i>Book Now
+                        </button>
+                        <button class="flex-1 bg-gray-100 text-gray-700 text-xs py-2 rounded-lg hover:bg-gray-200 transition-all font-medium">
+                            <i class="fas fa-info-circle mr-1"></i>Details
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function capitalize(str) {
+            return str.charAt(0).toUpperCase() + str.slice(1);
+        }
+
+        // Auto-focus input on load
+        window.addEventListener('load', () => {
+            userInput.focus();
+        });
+    </script>
+</body>
+</html>
